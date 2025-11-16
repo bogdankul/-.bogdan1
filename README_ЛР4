@@ -1,0 +1,119 @@
+# Понятие дерева и графа
+1. Дерево — это иерархическая структура, состоящая из узлов. У каждого узла может быть только один родитель (исключение — корневой узел), но несколько потомков. Корень не имеет родителя, а листья — потомков. Такая модель применяется для представления файловых систем, организационных структур и генеалогических древ.
+2. Граф — более общая нелинейная структура, состоящая из вершин и соединяющих их рёбер. Формально граф определяется как G=(U,E), где U — множество вершин, E — множество рёбер (каждое ребро представляет собой пару [x,y]). Графы могут быть ориентированными/неориентированными и взвешенными/невзвешенными. Примеры применения: социальные сети, дорожные сети и электрические схемы.
+Формирование графов и поиск кратчайших путей реализуются через Дейкстру на трёх языках с разными представлениями: матрица смежности и список смежности с приоритетной очередью.
+- Python: граф — словарь словарей соседей и весов, для Дейкстры используется heapq как приоритетная очередь, расстояния инициализируются infinity, а улучшения релаксируются по мере извлечения минимальной вершины.
+- Java: два подхода — матрица смежности с массивами visited/distance и функцией выбора минимума, а также список смежности через ArrayList[] с PriorityQueue и накоплением веса до вершины (wsf).
+- C++: граф — vector<vector> с полями destination/weight, применяется priority_queue с компаратором для минимального расстояния, массив distances и previous позволяют восстановить путь и вывести кратчайшую стоимость.
+# Формирование деревьев и графов на Python, Java и C++
+## Пример формирования дерева на Python
+1.	Импорт и инициализация
+- import heapq # Приоритетная очередь (мин-куча).
+- distances = {v: float('inf') for v in graph} # Все расстояния = ∞.
+- distances[start] = 0 # Источник = 0.
+- pq = [(0, start)] # Куча начинается с (0, источник).
+2.	Основной цикл с извлечением минимума
+- dist, v = heapq.heappop(pq) # Берём вершину с наименьшей оценкой.
+- if dist > distances[v]: continue # Пропускаем устаревшую пару.
+3.	Релаксация исходящих рёбер
+- for u, w in graph[v].items(): # Обходим соседей v.
+- nd = dist + w  # Кандидат на улучшение.
+- if nd < distances[u]:  # Условие релаксации.
+- distances[u] = nd  # Фиксируем лучший путь.
+- heapq.heappush(pq, (nd, u))  # Кладём обновлённую оценку.
+Сложность: O(n log n) так как до V извлечений минимума и до E вставок, каждая за O(log V).
+## Пример формирования графа на C++
+1.	Заголовки и модели данных
+- #include <vector> // Список смежности.
+- #include <queue> // priority_queue.
+- #include <limits> // numeric_limits для ∞.
+- struct Edge { int destination; int weight; }; // Рёбра.
+2.	Инициализация
+- vector<int> dist(n, std::numeric_limits<int>::max()); // dist = ∞.
+- dist[s] = 0; // Источник.
+- priority_queue<pair<int,int>, vector<pair<int,int>>, greater<pair<int,int>>> pq; // Мин-куча.
+- pq.push({0, s}); // Начальное состояние.
+3.	Основной цикл и релаксации
+- while(!pq.empty()){ // Пока есть кандидаты.
+- auto cur = pq.top(); pq.pop(); int d = cur.first, v = cur.second; // Минимум.
+- if(d > dist[v]) continue; // Пропуск устаревшего.
+- for(const auto& e : g[v]){ // Соседи v.
+- int nd = d + e.weight; if(nd < dist[e.destination]){ dist[e.destination] = nd; pq.push({nd, e.destination}); }  // Релаксация и push.
+Сложность: O(n log n) из-за логарифмических вставок/извлечений и суммарного числа операций, ограниченного V извлечениями и до E улучшениями.
+## Пример формирования графа на Java
+Задействуются ArrayList<Edge>[] и PriorityQueue<Pair> с compareTo по весу “wsf”, а boolean[] visited фиксирует вершину при первом извлечении.
+1.	Импорт и модели данных
+- import java.util.*; // Коллекции и PriorityQueue.
+- static class Edge { int nbr, weight; } // Ребро к соседу с весом.
+- static class Pair implements Comparable<Pair> { int v, wsf; public int compareTo(Pair o){ return this.wsf - o.wsf; } } // Мин-куча по wsf.
+2.	Инициализация структур
+- int n = g.length; int[] dist = new int[n]; Arrays.fill(dist, Integer.MAX_VALUE); // dist = ∞.
+- boolean[] vis = new boolean[n]; // Не зафиксированы.
+- ProrityQueue<Pair> pq = new PriorityQueue<>(); // Мин-куча.
+- dist[src] = 0; pq.add(new Pair(src, 0)); // Источник.
+3.	Основной цикл Дейкстры
+- while(!pq.isEmpty()){ // Пока есть кандидаты.
+- Pair cur = pq.remove(); // Минимальный wsf.
+- if(vis[cur.v]) continue; // Пропуск устаревшего.
+- vis[cur.v] = true; // Фиксация кратчайшей дистанции.
+- for(Edge e: g[cur.v]){ // Релаксация рёбер.
+- int nd = cur.wsf + e.weight;  // Кандидат.
+- if(nd < dist[e.nbr]){ dist[e.nbr] = nd; pq.add(new Pair(e.nbr, nd)); }  // Обновление и push.
+} }
+Сложность: O(n log n) по тем же причинам, что и в Python (логарифмические операции кучи; до V извлечений и до E успешных релаксаций).
+# Поиск пути от корневого узла до заданного узла дерева с помощью алгоритма обхода в глубину (DFS) 
+Ключевая идея: начинаем с заданной вершины (узла) и идём «как можно глубже» по одному пути. Только когда дальше идти некуда (достигли листа или непосещённой вершины), возвращаемся на шаг назад («backtracking») и пробуем другой путь.
+## Реализация на Python
+1. Структура данных класс Node: каждый узел дерева представлен объектом класса Node: value — хранимое значение, children — список дочерних узлов, add_child() — метод для добавления потомка в список children.
+`class Node:
+ def __init__(self, value):
+     self.value = value 
+     self.children = [] 
+ def add_child(self, child_node):
+     self.children.append(child_node)`
+2. Основная функция: find_path(root, target) ищет путь от корня (root) до узла со значением target и возвращает список значений узлов на пути (например, ['A', 'B', 'E']) или None, если путь не найден. 
+`def find_path(root, target)
+    path = [] 
+    if dfs_find_path(root, target, path):
+     return path
+    return None`
+3. Вспомогательная функция: dfs_find_path(node, target, path) - это рекурсивный обход в глубину (Depth‑First Search, DFS) с обратной трассировкой (backtracking).
+## Реализация на С++
+1. Структура узла дерева struct BTree: data — хранимое значение (целое число), left и right — указатели на левое и правое поддеревья (NULL означает отсутствие потомка).
+`struct BTree {
+ int data; 
+ BTree* left; 
+ BTree* right; };`
+
+2. Создаем новый узел с заданным значением
+`BTree* add(int data) {
+ BTree* node = new BTree;
+ node->data = data;
+ node->left = NULL;
+ node->right = NULL;
+ return node;}`
+
+3. Вставка в BST (insert): если текущий узел NULL (достигли «пустого» места), создаём новый узел return add(key); если (key < node->data) — вставляем в левое поддерево  node->left = insert(node->left, key); если (key >= node->data) — в правое поддерево (дубликаты идут вправо) node->right = insert(node->right, key). 
+Всегда возвращается текущий узел node, чтобы сохранить связь в дереве.
+4. Поиск пути vector<int> getPathFromRootToNode(BTree* node, int key) (рекурсия, через которую неявно реализован backtracking).
+ `vector<int> rightPath = getPathFromRootToNode(node->right, key);
+ if (!rightPath.empty()) {
+ rightPath.insert(rightPath.begin(), node->data);
+ return rightPath;}`
+ ## Реализация на Java
+ 1. Структура данных TreeNode: внутренний класс описывает узел бинарного дерева: val — значение узла (целое число), left, right — ссылки на левого и правого потомков (null, если потомка нет). 
+`public TreeNode(int val, TreeNode left, TreeNode right) {
+ this.val = val;
+ this.left = left;
+ this.right = right;
+ }`
+
+
+2. Основной метод public boolean hasPathSum(TreeNode root, int targetSum) {return hasPathSumRecursive(root, targetSum, 0);}: 
+принимает корень дерева и целевую сумму; запускает рекурсивный поиск, передавая начальную сумму 0; возвращает true, если такой путь существует, иначе false.
+
+3. Рекурсивный метод private boolean hasPathSumRecursive(TreeNode root, int targetSum, int currentSum)
+Данный алгоритм не использует backtracking в классическом понимании (без явного «отката» изменений).
+Вместо этого он: полагается на передачу параметров по значению (каждая ветвь получает свою копию currentSum) и использует механизм стека вызовов для автоматического управления состоянием.
+### Оценка временной сложности данного алгоритма
+Посещение каждой вершины происходит ровно один раз. Каждый ребро также рассматривается один раз при переходе от родителя к ребёнку. Общая временная сложность алгоритма DFS для дерева с N вершинами и E рёбрами:O(N+E). O(N), где N — количество узлов в дереве, так как каждый узел посещается один раз.
